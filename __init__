@@ -1,0 +1,55 @@
+import cv2
+#print cv2.__version__
+import sys
+import numpy as np
+import trackHand as th
+
+# cascPath = sys.argv
+# faceCascade = cv2.CascadeClassifier(cascPath)
+
+# Captures a single image from the camera and returns it in PIL format
+
+
+
+cv2.namedWindow("preview")
+camera = cv2.VideoCapture(0)
+
+if camera.isOpened():  # try to get the first frame
+    rval, frame = camera.read()
+else:
+    rval = False
+    del camera
+
+while rval:
+    #First a background image is used to threshold the background away. Keep hands away.
+    #cv2.imshow("preview", frame)
+    rval, frame = camera.read()
+    backGroundImage = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY);
+    key = cv2.waitKey(20)
+    cv2.imshow("preview", backGroundImage)
+
+    if key == 27: # exit on ESC
+        break
+
+    if key == 32: # search for hand on space
+        while rval:
+            #go for loop with background saved
+            rval, frame = camera.read()
+            handImage = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY);
+
+            key = cv2.waitKey(20)
+            finalPicture = cv2.subtract(handImage,backGroundImage)
+            ret, thresh = cv2.threshold(finalPicture, 175, 255, 0)
+            foo, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+            
+            for i in range(0, len(contours)-1, 1):
+                cv2.drawContours(finalPicture, [contours[i]], 0, (0, 255, 0), 3)
+
+            cv2.imshow("preview", finalPicture)
+            if key == 27: # exit on ESC
+                break
+
+        break
+
+cv2.destroyWindow("preview")
