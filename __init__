@@ -4,16 +4,17 @@ import sys
 import numpy as np
 import trackHand as th
 
-# cascPath = sys.argv
-# faceCascade = cv2.CascadeClassifier(cascPath)
+slider = 200
+def nothing(x):
 
-# Captures a single image from the camera and returns it in PIL format
-
+    pass
 
 cv2.namedWindow("Main")
 cv2.namedWindow("BG")
-cv2.namedWindow("MOG2")
-cv2.namedWindow("Final")
+
+cv2.namedWindow("FOO")
+cv2.namedWindow("FOO2")
+cv2.namedWindow("FOO3")
 camera = cv2.VideoCapture(0)
 
 if camera.isOpened():  # try to get the first frame
@@ -21,62 +22,50 @@ if camera.isOpened():  # try to get the first frame
 else:
     rval = False
     del camera
+
 MOG2 = cv2.createBackgroundSubtractorMOG2() #//MOG approach
-#MOG2.set("detectShadows",False)
-#MOG2.set("nmixtures",3);
-backgroundFrame = 100
+MOG2.setDetectShadows(True)
+MOG2.setNMixtures(3);
+
+cv2.createTrackbar("History", "FOO2", slider, 5000, nothing)
+
 
 while rval:
 
-
-    rval, bgFrame = camera.read()
-
-    subtractor = MOG2.apply(bgFrame)
+    rval, frame = camera.read()
+    cv2.imshow("Main", frame)
     key = cv2.waitKey(20)
+
+    subtractor = MOG2.apply(frame)
+    bgImage = MOG2.getBackgroundImage()
+    cv2.imshow("FOO3", bgImage)
+    test = cv2.subtract(bgImage, frame)
+    test2 = cv2.cvtColor(test, cv2.COLOR_RGB2GRAY)
+    test2 = cv2.add(test2, subtractor);
+    cv2.imshow("FOO", test2)
+
+    slider = cv2.getTrackbarPos("History", "FOO2")
+    MOG2.setHistory(slider)
+
+    subtractor = cv2.erode(subtractor, None, 1)
+
     cv2.imshow("BG", subtractor)
 
-    bg2 = MOG2.getBackgroundImage()
-    cv2.imshow("BG", bg2)
-
-    backGroundImage = cv2.cvtColor(bg2, cv2.COLOR_RGB2GRAY)
-
-
-    ret, thresh = cv2.threshold(backGroundImage, 175, 255, 0)
-    foo, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    bwFrame = cv2.cvtColor(test, cv2.COLOR_RGB2GRAY)
+    ret, thresh = cv2.threshold(bwFrame, 20, 255, 0)
+    foo, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     for i in range(0, len(contours)-1, 1):
-         cv2.drawContours(backGroundImage, [contours[i]], 0, (0, 255, 0), 3)
-         cv2.imshow("Main", backGroundImage)
+        if cv2.contourArea(contours[i]) > 100:
+            cv2.drawContours(frame, [contours[i]], 0, (0, 255, 0), 2)
+            # cv2.convexHull(contours[i],)
 
+        cv2.imshow("FOO2", frame)
 
-
-    # backGroundImage = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    # key = cv2.waitKey(20)
-    # cv2.imshow("Main", backGroundImage)
-    #
-    # subtractor = MOG2.apply(backGroundImage)
-    # cv2.imshow("MOG2", subtractor)
-    #
-    # finalPicture = cv2.subtract(backGroundImage,subtractor)
-    # cv2.imshow("Final", finalPicture)
     if key == 27: # exit on ESC
         break
 
     if key == 32: # search for hand on Space
-
-        while rval:
-            #go for loop with background saved
-            rval, frame = camera.read()
-            handImage = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-            key = cv2.waitKey(20)
-
-            finalPicture = cv2.subtract(handImage, backGroundImage)
-
-
-
-            if key == 27: # exit on ESC
-                break
-
         break
 
 cv2.destroyWindow("preview")
